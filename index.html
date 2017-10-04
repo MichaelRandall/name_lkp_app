@@ -1,0 +1,251 @@
+<link rel="stylesheet" type="text/css" href="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/bootstrap-3.3.7-dist/css/bootstrap.min.css">
+
+<link rel="stylesheet" type="text/css" href="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/css/styles.css">
+
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/lib/jquery/jquery-3.1.1.js"></script>
+
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/bootstrap-3.3.7-dist/js/bootstrap.min.js"></script>
+
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/snbApp_NamespaceObj.js"></script>
+
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/sp.listarray.js"></script>
+
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/data.retriever.new.js"></script>
+
+
+	<div id="appHolder">
+		<p style="font-size:12px;margin-left:8px;">The lookup only works for COE- prefixed server names consisting of exactly 15 characters. Input the full 15-character server name to receive a breakdown of its function and location.
+	</p>
+    
+	<div class="row form-inline sectionHolder">
+        <input class="form-control" id="user_input" type="text" style="Width:322px; display:inline-block" maxlength="15" title="15 characters starting with &quot;COE-&quot;" placeholder="Server Name" style="text-transform:uppercase;">
+        <button id="goFind" type="submit" class="btn btn-default" style="display:inline-block">Lookup</button>
+    </div>
+    
+    <div class="row sectionHolder hide" id="messages"></div>
+    
+    <div class="row form-inline sectionHolder" id="primary_activity_holder">
+        <input class="form-control section" id="primary_activity_code" type="text">
+        <input class="form-control sectionDescription" id="primary_activity_code_desc" type="text" placeholder="COE-">
+    </div>
+
+    <div class="row form-inline sectionHolder" id="secondary_activity_holder">
+        <input class="form-control section" id="secondary_activity_code" type="text">
+        <input class="form-control sectionDescription" id="secondary_activity_code_desc" type="text" placeholder="Op Unit">
+    </div>
+
+    <div class="row form-inline sectionHolder" id="primary_function_holder">
+        <input class="form-control section" id="primary_function_code" type="text">
+        <input class="form-control sectionDescription" id="primary_function_code_desc" type="text" placeholder="main role of server">
+    </div>
+
+    <div class="row form-inline sectionHolder" id="secondary_function_holder">
+        <input class="form-control section" id="secondary_function_code" type="text">
+        <input class="form-control sectionDescription" id="secondary_function_code_desc" type="text" placeholder="second role if any">
+    </div>
+    
+    <div class="row form-inline sectionHolder" id="number_sequence_holder">
+        <input class="form-control section" id="number_sequence" type="text">
+        <input class="form-control sectionDescription" id="number_sequence_desc" type="text" placeholder="number for secondary function, if any">
+    </div>
+	<!--
+    <div class="row form-inline sectionHolder" id="site_locations_holder">
+        <input class="form-control section" id="site_locations" type="text">
+        <input class="form-control sectionDescription" id="site_locations_desc" type="text" placeholder="physical site">
+    </div>
+	-->
+    <div class="row form-inline sectionHolder" id="site_code_holder">
+        <input class="form-control section" id="site_code" type="text">
+        <input class="form-control sectionDescription" id="site_code_desc" type="text" placeholder="DC/OP">
+    </div>
+    
+    <div class="row form-inline sectionHolder" id="server_environment_holder">
+        <input class="form-control section" id="environment" type="text">
+        <input class="form-control sectionDescription" id="environment_desc" type="text" placeholder="environment for DC/OPop: testing, prod, training">
+    </div>
+	
+	<div class="row form-inline sectionHolder">
+		<button id="reset" type="reset" class="btn btn-default">Reset Form</button>
+    </div>
+
+</div>
+<div id = "error_holder">
+	Loading ...
+</div>
+
+<script type="text/javascript">
+	function printObject(obj){
+		console.log("Event type: " + event.type);
+		for(var p in obj){
+			console.log(p + ": " + obj[p]);
+		}
+	}
+
+    function _onQueryFailed(sender, args) {
+        alert('Request failed.\nError: ' + args.get_message() + '\nStackTrace: ' + args.get_stackTrace());
+    }
+	
+	//hides the error message from previous user input attempts, if the message is visible
+	function hideErrorMessage(){ 
+		if(document.getElementById("messages").classList.contains('show')){
+			document.getElementById("messages").classList.remove('show');
+			document.getElementById("messages").classList.add('hide');
+		}
+	}
+	
+	//shows the error message if the user's input does not have the correct prefix or is of an incorrect length
+	function showErrorMessage(){
+		document.getElementById("messages").classList.remove('hide');
+		document.getElementById("messages").classList.add('show');
+		document.getElementById("messages").innerHTML="Server names consist of exactly 15 characters and are prefixed with &quot;COE-&quot;. Please try again.";
+	}
+    
+	//Tests the user's input and hides and shows message field as needed
+    function checkValidInput(uInput){
+		var upperInput = uInput.toUpperCase();
+        if(upperInput.length === 15 && upperInput.substring(0,4)=== "COE-"){
+			hideErrorMessage();
+            return true;
+        } else {
+			showErrorMessage();
+            var allDesc = document.querySelectorAll("input.sectionDescription");
+            var i = 0;
+            var descLength = allDesc.length;
+            for(i;i<descLength;i++){
+                allDesc[i].value = "";
+            }
+            return false;
+        } 
+    }
+	
+	//returns boolean value indicating server hosted at either data center, or off-premise
+	function isServerHostingDCOP(uInput,callback){
+		var host_pattern = /^dc|^op/i; 
+		
+		//test for host option
+		if(host_pattern.test(uInput.substring(12))){
+			return callback(uInput,host_pattern.exec(uInput.substring(12)));
+			// hostOption = "dc_or_op"; -->
+			// uInputSubStringArray.push({site_code:u_input.substring(12,14).toUpperCase()});
+			// uInputSubStringArray.push({lifecycle:u_input.substring(14).toUpperCase()});
+			// document.getElementById('site_locations_holder').classList.remove("show");
+			// document.getElementById('site_locations_holder').classList.add("hide");
+		}else{
+			return callback(uInput,"site");
+		}
+			// hostOption = "site"; -->
+			//uInputSubStringArray.push({site_locations:u_input.substring(12).toUpperCase()});
+			//document.getElementById('site_code_holder').classList.remove("show");
+			//document.getElementById('server_environment_holder').classList.remove("show");
+			//document.getElementById('site_code_holder').classList.add("hide");
+			//document.getElementById('server_environment_holder').classList.add("hide");	
+	}
+    
+    function ListDetails(listName){
+        this.listName = listName;
+    }
+	
+	function buildServerNameComponentsObj(u_input,hosting){
+		var serverNameComponentsObj = {};
+		if(hosting[0] === "DC" || hosting[0] === "OP"){
+			//build object with extra fields
+			serverNameComponentsObj.primary_activity_code = u_input.substring(0,4).toUpperCase();
+			serverNameComponentsObj.secondary_activity_code=u_input.substring(4,7).toUpperCase();
+			serverNameComponentsObj.primary_function_code=u_input.substring(7,9).toUpperCase();
+			serverNameComponentsObj.secondary_function_code=u_input.substring(9,10).toUpperCase();
+			serverNameComponentsObj.number_sequence=u_input.substring(10,12).toUpperCase();
+			serverNameComponentsObj.site_code=u_input.substring(12,14).toUpperCase();
+			serverNameComponentsObj.server_environment_code=u_input.substring(14).toUpperCase();
+			
+		} else{
+			//build object with fewer fields
+			serverNameComponentsObj.primary_activity_code = u_input.substring(0,4).toUpperCase();
+			serverNameComponentsObj.secondary_activity_code=u_input.substring(4,7).toUpperCase();
+			serverNameComponentsObj.primary_function_code=u_input.substring(7,9).toUpperCase();
+			serverNameComponentsObj.secondary_function_code=u_input.substring(9,10).toUpperCase();
+			serverNameComponentsObj.number_sequence=u_input.substring(10,12).toUpperCase();
+			serverNameComponentsObj.site_code=u_input.substring(12).toUpperCase();
+		}
+		printObject(serverNameComponentsObj);
+		return serverNameComponentsObj;
+	}
+
+	function getOSType(serverNameComponentsObject){
+		//move the following short section to another function
+		var serverType = "";
+		var server_pattern = /u/i;
+		
+		//test for OS type
+		if(server_pattern.test(serverNameComponentsObject.primary_function_code)){
+		 serverType = "unix";
+		} else {
+		 serverType = "windows";
+		}
+
+		return serverType;
+	}
+	
+	function getServerNameComponentsDetails(serverNameComponentsObject, osType){
+		
+		//var serverTypeListArray = snbApp.getArrayOfListsForObjects(osType);
+		
+		//object that is passed to getListDetails
+		//var myObj = {
+		//  hostOption:hostOption,
+		//  serverType:serverType,
+		//  listsArray:serverTypeListArray, //array of all lists needed
+		//  subStringsArray:uInputSubStringArray, //an array of objects consisting of list name and substrings
+		//};
+		
+		//starts the process of building the response using .ajax
+		var clientContext = new SP.ClientContext.get_current();
+		//var fullServerNameDetailsObj = clientContext.executeQueryAsync(snbApp.sp_single_list.getListDetails(myObj,_onQueryFailed));
+		var fullServerNameDetailsObj = clientContext.executeQueryAsync(snbApp.sp_single_list.getListDetails(serverNameComponentsObject,osType,_onQueryFailed));
+		return fullServerNameDetailsObj;
+
+	}
+
+	//Enter event that starts the lookup process
+	$("#user_input").keypress(function(e){
+		if(e.which === '13'){
+			var user_input = document.getElementById("user_input").value;
+			if(checkValidInput(user_input)){
+				var serverNameComponentsObject = isServerHostingDCOP(user_input,buildServerNameComponentsObj);
+				var osType = getOSType(serverNameComponentsObject);
+				printObject(serverNameComponentsObject);
+				var serverNameDetailsObj = getServerNameComponentsDetails(serverNameComponentsObject, osType);;
+			}
+			return false;
+			event.preventDefault();			
+		}
+		
+	});
+	
+	//Click event that starts the lookup process
+    $("#goFind").on('click',function(){
+		var user_input = document.getElementById("user_input").value;
+		if(checkValidInput(user_input)){
+			var serverNameComponentsObject = isServerHostingDCOP(user_input,buildServerNameComponentsObj);
+			var osType = getOSType(serverNameComponentsObject);
+			printObject(serverNameComponentsObject);
+			var serverNameDetailsObj = getServerNameComponentsDetails(serverNameComponentsObject, osType);	
+		}
+		return false;
+		event.preventDefault();
+    });
+    
+	// document.getElementById('site_locations_holder').classList.remove("hide"); -->
+	// document.getElementById('site_code_holder').classList.remove("hide"); -->
+	// document.getElementById('server_environment_holder').classList.remove("hide"); -->
+	// document.getElementById('site_locations_holder').classList.add("show"); -->
+	// document.getElementById('site_code_holder').classList.add("show"); -->
+	// document.getElementById('server_environment_holder').classList.add("show"); -->
+	
+	
+    // document.getElementById("user_input").addEventListener("keypress",function(event){ -->
+        // var myString = document.getElementById("user_input").value; -->
+        // if(myString.length === 4){ -->
+          // console.log("Hi " + event.eventPhase + ", " + event.keyCode + ", " + event.charCode + ", " + myString); -->
+        // }    -->
+    // }); -->
+</script>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head><style></style>
+<script>
+var add = function(a){
+	return function(b){
+		return a + b;
+	}
+};
+
+var addToFive = add(5);
+</script>
+</head>
+
+<body>
+	<div id="answer">
+		Loading...
+	</div>
+
+<script>
+document.getElementById("answer").innerHTML = addToFive(1)
+
+</script>
+</body>
+
+</html>
