@@ -10,7 +10,7 @@
 
 <script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/sp.listarray.js"></script>
 
-<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/data.retriever.new.js"></script>
+
 
 
 	<div id="appHolder">
@@ -69,11 +69,12 @@
     </div>
 
 </div>
-<div id = "error_holder">
-	Loading ...
-</div>
 
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/model/snModel.js"></script>
+<script type="text/javascript" src="https://staging-team.usace.army.mil/sites/sandbox/WW/MR/Custom%20Code/name_lkp_app/js/data.retriever.new.js"></script>
 <script type="text/javascript">
+	
+	var myUI = snbApp.sn_model;
 	function printObject(obj){
 		console.log("Event type: " + event.type);
 		for(var p in obj){
@@ -124,21 +125,14 @@
 		
 		//test for host option
 		if(host_pattern.test(uInput.substring(12))){
+			myUI.sn_server_environment_holder.classList.remove("hide");
+        	myUI.sn_server_environment_holder.classList.add("show");
 			return callback(uInput,host_pattern.exec(uInput.substring(12)));
-			// hostOption = "dc_or_op"; -->
-			// uInputSubStringArray.push({site_code:u_input.substring(12,14).toUpperCase()});
-			// uInputSubStringArray.push({lifecycle:u_input.substring(14).toUpperCase()});
-			// document.getElementById('site_locations_holder').classList.remove("show");
-			// document.getElementById('site_locations_holder').classList.add("hide");
 		}else{
+			myUI.sn_server_environment_holder.classList.remove("show");
+        	myUI.sn_server_environment_holder.classList.add("hide");
 			return callback(uInput,"site");
-		}
-			// hostOption = "site"; -->
-			//uInputSubStringArray.push({site_locations:u_input.substring(12).toUpperCase()});
-			//document.getElementById('site_code_holder').classList.remove("show");
-			//document.getElementById('server_environment_holder').classList.remove("show");
-			//document.getElementById('site_code_holder').classList.add("hide");
-			//document.getElementById('server_environment_holder').classList.add("hide");	
+		}	
 	}
     
     function ListDetails(listName){
@@ -148,7 +142,7 @@
 	function buildServerNameComponentsObj(u_input,hosting){
 		var serverNameComponentsObj = {};
 		if(hosting[0] === "DC" || hosting[0] === "OP"){
-			//build object with extra fields
+			//build object with extra fields and call function to show hide appropriate fields
 			serverNameComponentsObj.primary_activity_code = u_input.substring(0,4).toUpperCase();
 			serverNameComponentsObj.secondary_activity_code=u_input.substring(4,7).toUpperCase();
 			serverNameComponentsObj.primary_function_code=u_input.substring(7,9).toUpperCase();
@@ -156,7 +150,6 @@
 			serverNameComponentsObj.number_sequence=u_input.substring(10,12).toUpperCase();
 			serverNameComponentsObj.site_code=u_input.substring(12,14).toUpperCase();
 			serverNameComponentsObj.server_environment_code=u_input.substring(14).toUpperCase();
-			
 		} else{
 			//build object with fewer fields
 			serverNameComponentsObj.primary_activity_code = u_input.substring(0,4).toUpperCase();
@@ -166,7 +159,6 @@
 			serverNameComponentsObj.number_sequence=u_input.substring(10,12).toUpperCase();
 			serverNameComponentsObj.site_code=u_input.substring(12).toUpperCase();
 		}
-		printObject(serverNameComponentsObj);
 		return serverNameComponentsObj;
 	}
 
@@ -187,19 +179,8 @@
 	
 	function getServerNameComponentsDetails(serverNameComponentsObject, osType){
 		
-		//var serverTypeListArray = snbApp.getArrayOfListsForObjects(osType);
-		
-		//object that is passed to getListDetails
-		//var myObj = {
-		//  hostOption:hostOption,
-		//  serverType:serverType,
-		//  listsArray:serverTypeListArray, //array of all lists needed
-		//  subStringsArray:uInputSubStringArray, //an array of objects consisting of list name and substrings
-		//};
-		
 		//starts the process of building the response using .ajax
 		var clientContext = new SP.ClientContext.get_current();
-		//var fullServerNameDetailsObj = clientContext.executeQueryAsync(snbApp.sp_single_list.getListDetails(myObj,_onQueryFailed));
 		var fullServerNameDetailsObj = clientContext.executeQueryAsync(snbApp.sp_single_list.getListDetails(serverNameComponentsObject,osType,_onQueryFailed));
 		return fullServerNameDetailsObj;
 
@@ -212,7 +193,6 @@
 			if(checkValidInput(user_input)){
 				var serverNameComponentsObject = isServerHostingDCOP(user_input,buildServerNameComponentsObj);
 				var osType = getOSType(serverNameComponentsObject);
-				printObject(serverNameComponentsObject);
 				var serverNameDetailsObj = getServerNameComponentsDetails(serverNameComponentsObject, osType);;
 			}
 			return false;
@@ -233,19 +213,4 @@
 		return false;
 		event.preventDefault();
     });
-    
-	// document.getElementById('site_locations_holder').classList.remove("hide"); -->
-	// document.getElementById('site_code_holder').classList.remove("hide"); -->
-	// document.getElementById('server_environment_holder').classList.remove("hide"); -->
-	// document.getElementById('site_locations_holder').classList.add("show"); -->
-	// document.getElementById('site_code_holder').classList.add("show"); -->
-	// document.getElementById('server_environment_holder').classList.add("show"); -->
-	
-	
-    // document.getElementById("user_input").addEventListener("keypress",function(event){ -->
-        // var myString = document.getElementById("user_input").value; -->
-        // if(myString.length === 4){ -->
-          // console.log("Hi " + event.eventPhase + ", " + event.keyCode + ", " + event.charCode + ", " + myString); -->
-        // }    -->
-    // }); -->
 </script>
